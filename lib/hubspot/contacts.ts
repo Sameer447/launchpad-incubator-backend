@@ -1,0 +1,152 @@
+import { getHubSpotClient } from './client';
+import {
+  HubSpotContact,
+  ContactSearchRequest,
+  ContactSearchResponse,
+  FounderCardData,
+} from './types';
+
+/**
+ * Search contacts with filters
+ */
+export async function searchContacts(
+  searchRequest: ContactSearchRequest
+): Promise<ContactSearchResponse> {
+  try {
+    const client = getHubSpotClient();
+    const response = await client.crm.contacts.searchApi.doSearch(searchRequest);
+
+    return {
+      total: response.total,
+      results: response.results.map(contact => ({
+        id: contact.id,
+        properties: contact.properties,
+      })),
+      paging: response.paging,
+    };
+  } catch (error) {
+    console.error('Error searching contacts:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get contact by ID with specific properties
+ */
+export async function getContactById(
+  contactId: string,
+  properties?: string[]
+): Promise<HubSpotContact> {
+  try {
+    const client = getHubSpotClient();
+    const contact = await client.crm.contacts.basicApi.getById(
+      contactId,
+      properties,
+      undefined,
+      ['companies', 'deals']
+    );
+
+    return {
+      id: contact.id,
+      properties: contact.properties,
+    };
+  } catch (error) {
+    console.error(`Error fetching contact ${contactId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Update contact properties
+ */
+export async function updateContact(
+  contactId: string,
+  properties: Record<string, any>
+): Promise<HubSpotContact> {
+  try {
+    const client = getHubSpotClient();
+    const contact = await client.crm.contacts.basicApi.update(contactId, {
+      properties,
+    });
+
+    return {
+      id: contact.id,
+      properties: contact.properties,
+    };
+  } catch (error) {
+    console.error(`Error updating contact ${contactId}:`, error);
+    throw error;
+  }
+}
+
+/**
+ * Get all contacts with pagination support
+ */
+export async function getAllContacts(
+  limit: number = 100,
+  properties?: string[]
+): Promise<HubSpotContact[]> {
+  try {
+    const client = getHubSpotClient();
+    const allContacts: HubSpotContact[] = [];
+    let after: string | undefined = undefined;
+
+    do {
+      const response = await client.crm.contacts.basicApi.getPage(
+        limit,
+        after,
+        properties
+      );
+
+      allContacts.push(
+        ...response.results.map(contact => ({
+          id: contact.id,
+          properties: contact.properties,
+        }))
+      );
+
+      after = response.paging?.next?.after;
+    } while (after);
+
+    return allContacts;
+  } catch (error) {
+    console.error('Error fetching all contacts:', error);
+    throw error;
+  }
+}
+
+/**
+ * Transform HubSpot contact to Founder card data
+ */
+export function transformToFounderCardData(contact: HubSpotContact): FounderCardData {
+  const { properties } = contact;
+
+  return {
+    id: contact.id,
+    name: `${properties.firstname || ''} ${properties.lastname || ''}`.trim() || 'N/A',
+    email: properties.email || 'N/A',
+    phone: properties.phone || 'N/A',
+    applicationStatus: properties.application_status || 'N/A',
+    depositStatus: properties.deposit_status || 'N/A',
+    onboardingStage: properties.onboarding_stage || 'Not Started',
+    currentCohort: properties.current_cohort || 'N/A',
+    nextSteps: properties.next_steps || 'No action required',
+  };
+}
+
+/**
+ * Get founder-specific properties list
+ */
+export function getFounderProperties(): string[] {
+  return [
+    'firstname',
+    'lastname',
+    'email',
+    'phone',
+    'application_status',
+    'deposit_status',
+    'onboarding_stage',
+    'current_cohort',
+    'next_steps',
+  ];
+}
