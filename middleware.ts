@@ -15,8 +15,8 @@ export function middleware(request: NextRequest) {
     });
   }
 
-  // Log API requests
-  if (request.nextUrl.pathname.startsWith('/api/')) {
+  // Log API requests in development
+  if (process.env.NODE_ENV === 'development' && request.nextUrl.pathname.startsWith('/api/')) {
     console.log(`[${new Date().toISOString()}] ${request.method} ${request.nextUrl.pathname}`);
   }
 

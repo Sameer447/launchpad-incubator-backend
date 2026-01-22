@@ -9,10 +9,11 @@ import { validateRequest, ContactIdSchema, UpdateContactSchema, isValidHubSpotId
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // Await params in Next.js 15+
+    const { id } = await params;
 
     // Validate contact ID
     const validation = validateRequest(ContactIdSchema, id);
@@ -44,10 +45,11 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    // Await params in Next.js 15+
+    const { id } = await params;
 
     // Validate contact ID
     if (!isValidHubSpotId(id)) {
