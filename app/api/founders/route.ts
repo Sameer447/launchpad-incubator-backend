@@ -1,8 +1,9 @@
 import { NextRequest } from 'next/server';
-import { searchContacts, getFounderProperties, transformToFounderCardData } from '@/lib/hubspot/contacts';
+import { searchContacts, getFounderProperties, transformToFounderCardData, getContactById } from '@/lib/hubspot/contacts';
 import { getFounderAssociationLabelId } from '@/lib/hubspot/associations';
 import { successResponse, errorResponse, handleApiError } from '@/lib/utils/response';
 import { ContactSearchRequest } from '@/lib/hubspot/types';
+import { getHubSpotClient } from '@/lib/hubspot/client';
 
 /**
  * GET /api/founders
@@ -16,39 +17,73 @@ export async function GET(request: NextRequest) {
     const cohort = searchParams.get('cohort');
     const status = searchParams.get('status');
 
-    // Build search filters
-    const filters: any[] = [];
+    let contactResults: any[] = [];
 
-    // Add cohort filter if provided
-    if (cohort) {
-      filters.push({
-        propertyName: 'current_cohort',
-        operator: 'EQ',
-        value: cohort,
-      });
+    // If companyId is provided, fetch contacts associated with that company
+    if (companyId) {
+      const client = getHubSpotClient();
+      
+      // Get all contacts associated with this company
+      const associations = await client.crm.associations.batchApi.read(
+        'companies',
+        'contacts',
+        {
+          inputs: [{ id: companyId }],
+        }
+      );
+
+      const results = associations.results || [];
+      if (results.length > 0 && results[0].to) {
+        // Fetch each contact with founder properties
+        const contactPromises = results[0].to.map(async (assoc: any) => {
+          try {
+            const contactId = assoc.toObjectId || assoc.id;
+            return await getContactById(contactId, getFounderProperties());
+          } catch (error) {
+            console.error('Error fetching contact:', error);
+            return null;
+          }
+        });
+
+        const contacts = await Promise.all(contactPromises);
+        contactResults = contacts.filter(c => c !== null);
+      }
+    } else {
+      // Build search filters for non-company queries
+      const filters: any[] = [];
+
+      // Add cohort filter if provided
+      if (cohort) {
+        filters.push({
+          propertyName: 'cohort',
+          operator: 'EQ',
+          value: cohort,
+        });
+      }
+
+      // Add status filter if provided
+      if (status) {
+        filters.push({
+          propertyName: 'onboarding_status',
+          operator: 'EQ',
+          value: status,
+        });
+      }
+
+      // Build search request
+      const searchRequest: ContactSearchRequest = {
+        filterGroups: filters.length > 0 ? [{ filters }] : [],
+        properties: getFounderProperties(),
+        limit: 100,
+      };
+
+      // Search contacts
+      const results = await searchContacts(searchRequest);
+      contactResults = results.results;
     }
-
-    // Add status filter if provided
-    if (status) {
-      filters.push({
-        propertyName: 'application_status',
-        operator: 'EQ',
-        value: status,
-      });
-    }
-
-    // Build search request
-    const searchRequest: ContactSearchRequest = {
-      filterGroups: filters.length > 0 ? [{ filters }] : [],
-      properties: getFounderProperties(),
-      limit: 100,
-    };
-
-    // Search contacts
-    const results = await searchContacts(searchRequest);
 
     // Transform to founder card data
-    const founders = results.results.map(contact => transformToFounderCardData(contact));
+    const founders = contactResults.map(contact => transformToFounderCardData(contact));
 
     return successResponse(
       {

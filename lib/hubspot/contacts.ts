@@ -49,11 +49,15 @@ export async function getContactById(
 ): Promise<HubSpotContact> {
   try {
     const client = getHubSpotClient();
+    
+    // Use getFounderProperties if no properties specified
+    const propsToFetch = properties || getFounderProperties();
+    
     const contact = await client.crm.contacts.basicApi.getById(
       contactId,
-      properties,
+      propsToFetch,
       undefined,
-      ['companies', 'deals']
+      undefined
     );
 
     return {
@@ -130,17 +134,18 @@ export async function getAllContacts(
  */
 export function transformToFounderCardData(contact: HubSpotContact): FounderCardData {
   const { properties } = contact;
-
+  console.log('properties ===> ', properties);
+  
   return {
     id: contact.id,
     name: `${properties.firstname || ''} ${properties.lastname || ''}`.trim() || 'N/A',
     email: properties.email || 'N/A',
     phone: properties.phone || 'N/A',
-    applicationStatus: properties.application_status || 'N/A',
-    depositStatus: properties.deposit_status || 'N/A',
-    onboardingStage: properties.onboarding_stage || 'Not Started',
-    currentCohort: properties.current_cohort || 'N/A',
-    nextSteps: properties.next_steps || 'No action required',
+    applicationStatus: properties.onboarding_status || 'N/A',
+    depositStatus: properties.payment_status || 'N/A',
+    onboardingStage: properties.onboarding_status || 'Not Started',
+    currentCohort: properties.cohort || 'N/A',
+    nextSteps: properties.next_step || 'No action required',
   };
 }
 
@@ -153,10 +158,9 @@ export function getFounderProperties(): string[] {
     'lastname',
     'email',
     'phone',
-    'application_status',
-    'deposit_status',
-    'onboarding_stage',
-    'current_cohort',
-    'next_steps',
+    'onboarding_status',
+    'payment_status',
+    'next_step',
+    'cohort',
   ];
 }
