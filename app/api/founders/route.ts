@@ -82,7 +82,12 @@ export async function GET(request: NextRequest) {
       contactResults = results.results;
     }    
     // Transform to founder card data
+    // console.log('contactResults ===> ', contactResults);
+    
     const founders = contactResults.map(contact => transformToFounderCardData(contact));
+
+    // console.log('founders result === > ', founders);
+    
 
     return successResponse(
       {

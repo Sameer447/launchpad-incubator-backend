@@ -140,7 +140,7 @@ export function transformToFounderCardData(contact: HubSpotContact): FounderCard
     name: `${properties.firstname || ''} ${properties.lastname || ''}`.trim() || 'N/A',
     email: properties.email || 'N/A',
     phone: properties.phone || 'N/A',
-    applicationStatus: properties.onboarding_status || 'N/A',
+    applicationStatus: properties.application_status || 'N/A',
     depositStatus: properties.payment_status || 'N/A',
     onboardingStage: properties.onboarding_status || 'Not Started',
     currentCohort: properties?.current_cohort || properties?.cohort || 'N/A',
