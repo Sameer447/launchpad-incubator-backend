@@ -12,9 +12,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const limit = parseInt(searchParams.get('limit') || '100');
     const properties = searchParams.get('properties')?.split(',');
-
-    const contacts = await getAllContacts(limit, properties);
-
+    const contacts = await getAllContacts(limit, properties);    
     return successResponse(
       {
         total: contacts.length,

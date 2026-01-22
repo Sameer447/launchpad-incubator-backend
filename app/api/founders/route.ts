@@ -80,8 +80,7 @@ export async function GET(request: NextRequest) {
       // Search contacts
       const results = await searchContacts(searchRequest);
       contactResults = results.results;
-    }
-
+    }    
     // Transform to founder card data
     const founders = contactResults.map(contact => transformToFounderCardData(contact));
 

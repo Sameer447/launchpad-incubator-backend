@@ -29,7 +29,6 @@ export async function GET(
     const properties = searchParams.get('properties')?.split(',');
 
     const contact = await getContactById(id, properties);
-
     return successResponse(
       contact,
       'Contact retrieved successfully'

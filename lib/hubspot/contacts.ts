@@ -49,8 +49,7 @@ export async function getContactById(
 ): Promise<HubSpotContact> {
   try {
     const client = getHubSpotClient();
-    
-    // Use getFounderProperties if no properties specified
+    // Use getFounderProperties if no properties specified    
     const propsToFetch = properties || getFounderProperties();
     
     const contact = await client.crm.contacts.basicApi.getById(
@@ -111,7 +110,7 @@ export async function getAllContacts(
         after,
         properties
       );
-
+      
       allContacts.push(
         ...response.results.map(contact => ({
           id: contact.id,
@@ -134,7 +133,7 @@ export async function getAllContacts(
  */
 export function transformToFounderCardData(contact: HubSpotContact): FounderCardData {
   const { properties } = contact;
-  console.log('properties ===> ', properties);
+  // console.log('properties ===> ', properties);
   
   return {
     id: contact.id,
@@ -144,7 +143,7 @@ export function transformToFounderCardData(contact: HubSpotContact): FounderCard
     applicationStatus: properties.onboarding_status || 'N/A',
     depositStatus: properties.payment_status || 'N/A',
     onboardingStage: properties.onboarding_status || 'Not Started',
-    currentCohort: properties.cohort || 'N/A',
+    currentCohort: properties?.current_cohort || properties?.cohort || 'N/A',
     nextSteps: properties.next_step || 'No action required',
   };
 }
@@ -158,9 +157,10 @@ export function getFounderProperties(): string[] {
     'lastname',
     'email',
     'phone',
+    'application_status',
     'onboarding_status',
     'payment_status',
     'next_step',
-    'cohort',
+    'current_cohort',
   ];
 }
