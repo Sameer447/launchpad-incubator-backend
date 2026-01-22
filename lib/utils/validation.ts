@@ -1,4 +1,4 @@
-import { z, ZodError } from 'zod';
+import { z } from 'zod';
 
 // Validation schemas using Zod
 
@@ -10,15 +10,32 @@ export const ContactSearchSchema = z.object({
       filters: z.array(
         z.object({
           propertyName: z.string(),
-          operator: z.enum(['EQ', 'NEQ', 'LT', 'GT', 'CONTAINS', 'IN']),
-          value: z.string(),
+          operator: z.enum([
+            'EQ',
+            'NEQ',
+            'LT',
+            'LTE',
+            'GT',
+            'GTE',
+            'BETWEEN',
+            'IN',
+            'NOT_IN',
+            'HAS_PROPERTY',
+            'NOT_HAS_PROPERTY',
+            'CONTAINS_TOKEN',
+            'NOT_CONTAINS_TOKEN',
+          ]),
+          value: z.string().optional(),
+          values: z.array(z.string()).optional(),
+          highValue: z.string().optional(),
         })
       ),
     })
-  ),
+  ).optional(),
   properties: z.array(z.string()).optional(),
   limit: z.number().min(1).max(100).optional(),
   after: z.string().optional(),
+  sorts: z.array(z.string()).optional(),
 });
 
 export const UpdateContactSchema = z.object({
@@ -42,9 +59,8 @@ export function validateRequest<T>(
   } catch (error) {
     if (error instanceof z.ZodError) {
       // @ts-ignore
-      const errors: any = JSON.parse(error);
-      console.log('error === > ', errors);
-      const errorMessage: string = errors.map((err: any) => err.message).join(', ') || 'Invalid request data';
+      const errors = JSON.parse(error);
+      const errorMessage = errors.map((err: any) => err.message).join(', ');
       return { success: false, error: errorMessage };
     }
     return { success: false, error: 'Validation failed' };

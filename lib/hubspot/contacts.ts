@@ -14,7 +14,17 @@ export async function searchContacts(
 ): Promise<ContactSearchResponse> {
   try {
     const client = getHubSpotClient();
-    const response = await client.crm.contacts.searchApi.doSearch(searchRequest);
+    
+    // Build the search request in the format HubSpot expects
+    const hubspotSearchRequest: any = {
+      filterGroups: searchRequest.filterGroups || [],
+      properties: searchRequest.properties || [],
+      limit: searchRequest.limit || 100,
+      after: searchRequest.after,
+      sorts: searchRequest.sorts || [],
+    };
+
+    const response = await client.crm.contacts.searchApi.doSearch(hubspotSearchRequest);
 
     return {
       total: response.total,

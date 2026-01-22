@@ -43,19 +43,25 @@ export interface AssociationLabel {
   label: string;
 }
 
+// Updated to match HubSpot API client types
+export type FilterOperator = 'EQ' | 'NEQ' | 'LT' | 'LTE' | 'GT' | 'GTE' | 'BETWEEN' | 'IN' | 'NOT_IN' | 'HAS_PROPERTY' | 'NOT_HAS_PROPERTY' | 'CONTAINS_TOKEN' | 'NOT_CONTAINS_TOKEN';
+
 export interface ContactFilter {
   propertyName: string;
-  operator: 'EQ' | 'NEQ' | 'LT' | 'GT' | 'CONTAINS' | 'IN';
-  value: string;
+  operator: FilterOperator;
+  value?: string;
+  values?: string[];
+  highValue?: string;
 }
 
 export interface ContactSearchRequest {
-  filterGroups: {
+  filterGroups?: {
     filters: ContactFilter[];
   }[];
   properties?: string[];
   limit?: number;
   after?: string;
+  sorts?: string[];
 }
 
 export interface ContactSearchResponse {
