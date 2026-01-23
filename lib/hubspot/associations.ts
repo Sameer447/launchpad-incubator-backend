@@ -160,3 +160,91 @@ export async function getFounderAssociationLabelId(): Promise<number> {
 
   return founderLabel.typeId;
 }
+
+/**
+ * Get investor label ID from environment or fetch dynamically
+ */
+export async function getInvestorAssociationLabelId(): Promise<number> {
+  const envLabelId = process.env.ASSOCIATION_LABEL_INVESTOR;
+  if (envLabelId) {
+    return parseInt(envLabelId, 10);
+  }
+
+  // Fetch dynamically
+  const labels = await getContactCompanyAssociationLabels();
+  const investorLabel = labels.find(
+    label => label.label.toLowerCase() === 'investor'
+  );
+
+  if (!investorLabel) {
+    throw new Error('Investor association label not found');
+  }
+
+  return investorLabel.typeId;
+}
+
+/**
+ * Get mentor label ID from environment or fetch dynamically
+ */
+export async function getMentorAssociationLabelId(): Promise<number> {
+  const envLabelId = process.env.ASSOCIATION_LABEL_MENTOR;
+  if (envLabelId) {
+    return parseInt(envLabelId, 10);
+  }
+
+  // Fetch dynamically
+  const labels = await getContactCompanyAssociationLabels();
+  const mentorLabel = labels.find(
+    label => label.label.toLowerCase() === 'mentor'
+  );
+
+  if (!mentorLabel) {
+    throw new Error('Mentor association label not found');
+  }
+
+  return mentorLabel.typeId;
+}
+
+/**
+ * Get sponsor label ID from environment or fetch dynamically
+ */
+export async function getSponsorAssociationLabelId(): Promise<number> {
+  const envLabelId = process.env.ASSOCIATION_LABEL_SPONSOR;
+  if (envLabelId) {
+    return parseInt(envLabelId, 10);
+  }
+
+  // Fetch dynamically
+  const labels = await getContactCompanyAssociationLabels();
+  const sponsorLabel = labels.find(
+    label => label.label.toLowerCase() === 'sponsor'
+  );
+
+  if (!sponsorLabel) {
+    throw new Error('Sponsor association label not found');
+  }
+
+  return sponsorLabel.typeId;
+}
+
+/**
+ * Get event host label ID from environment or fetch dynamically
+ */
+export async function getEventHostAssociationLabelId(): Promise<number> {
+  const envLabelId = process.env.ASSOCIATION_LABEL_EVENT_HOST;
+  if (envLabelId) {
+    return parseInt(envLabelId, 10);
+  }
+
+  // Fetch dynamically
+  const labels = await getContactCompanyAssociationLabels();
+  const eventHostLabel = labels.find(
+    label => label.label.toLowerCase() === 'event host'
+  );
+
+  if (!eventHostLabel) {
+    throw new Error('Event Host association label not found');
+  }
+
+  return eventHostLabel.typeId;
+}
