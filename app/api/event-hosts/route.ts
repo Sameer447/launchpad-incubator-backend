@@ -1,67 +1,95 @@
 import { NextRequest } from 'next/server';
-import { getContactById } from '@/lib/hubspot/contacts';
-import { successResponse, handleApiError } from '@/lib/utils/response';
+import { successResponse, errorResponse, handleApiError } from '@/lib/utils/response';
 import { getHubSpotClient } from '@/lib/hubspot/client';
 
 /**
  * GET /api/event-hosts
- * Get all event hosts with their specific data
- * This endpoint filters contacts by the "event host" association label
+ * Get all event hosts associated with a company
  */
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
     const companyId = searchParams.get('companyId');
 
-    let contactResults: any[] = [];
-
-    if (companyId) {
-      const client = getHubSpotClient();
-      
-      console.log('Fetching event host associations for company:', companyId);
-      
-      const associations = await client.crm.associations.batchApi.read(
-        'companies',
-        'contacts',
-        {
-          inputs: [{ id: companyId }],
-        }
-      );
-      
-      const results = associations.results || [];
-      
-      if (results.length > 0) {
-        const toArray = results[0].to || [];
-        
-        if (toArray.length > 0) {
-          console.log(`Found ${toArray.length} associated contacts`);
-          
-          const contactPromises = toArray.map(async (assoc: any) => {
-            try {
-              const contactId = assoc.toObjectId || assoc.id;
-              return await getContactById(String(contactId), [
-                'firstname',
-                'lastname',
-                'email',
-                'phone',
-                'event_host_organization_type',
-                'events_hosted',
-                'next_event',
-              ]);
-            } catch (error) {
-              console.error('Error fetching contact:', error);
-              return null;
-            }
-          });
-
-          const contacts = await Promise.all(contactPromises);
-          contactResults = contacts.filter(c => c !== null);
-        }
-      }
+    if (!companyId) {
+      return errorResponse('Company ID is required', 400);
     }
 
+    const client = getHubSpotClient();
+    
+    console.log('Fetching event hosts for company:', companyId);
+
+    // Use v4 API to get associations with type details
+    const associationsResponse = await client.crm.associations.v4.basicApi.getPage(
+      'companies',
+      companyId,
+      'contacts',
+      undefined,
+      500
+    );
+
+    if (!associationsResponse.results || associationsResponse.results.length === 0) {
+      return successResponse(
+        {
+          total: 0,
+          eventHosts: [],
+        },
+        'No contacts found for this company'
+      );
+    }
+
+    // Filter for Event Host associations (USER_DEFINED category)
+    const eventHostAssociations = associationsResponse.results.filter((assoc: any) => {
+      return assoc.associationTypes?.some((at: any) => {
+        return at.label && 
+               at.label.toLowerCase() === 'event host' && 
+               at.category === 'USER_DEFINED';
+      });
+    });
+
+    console.log(`Found ${eventHostAssociations.length} event hosts`);
+
+    if (eventHostAssociations.length === 0) {
+      return successResponse(
+        {
+          total: 0,
+          eventHosts: [],
+        },
+        'No contacts with "Event Host" label found.'
+      );
+    }
+
+    const contactIds = eventHostAssociations.map((assoc: any) => assoc.toObjectId);
+
+    // Fetch contact details
+    const contactPromises = contactIds.map(async (contactId) => {
+      try {
+        const contact = await client.crm.contacts.basicApi.getById(
+          contactId,
+          [
+            'firstname',
+            'lastname',
+            'email',
+            'phone',
+            'event_host_organization_type',
+            'events_hosted',
+            'next_event',
+          ]
+        );
+        return {
+          id: contact.id,
+          properties: contact.properties,
+        };
+      } catch (error) {
+        console.error('Error fetching event host contact:', contactId, error);
+        return null;
+      }
+    });
+
+    const contacts = (await Promise.all(contactPromises)).filter(c => c !== null);
+
     // Transform to event host card data
-    const eventHosts = contactResults.map(contact => {
+    const eventHosts = contacts.map(contact => {
       const { properties } = contact;
       return {
         id: contact.id,
@@ -69,7 +97,7 @@ export async function GET(request: NextRequest) {
         email: properties.email || 'N/A',
         phone: properties.phone || 'N/A',
         organizationType: properties.event_host_organization_type || 'N/A',
-        eventsHosted: properties.events_hosted || 'N/A',
+        eventsHosted: properties.events_hosted || '0',
         nextEvent: properties.next_event || 'N/A',
       };
     });
@@ -78,13 +106,11 @@ export async function GET(request: NextRequest) {
       {
         total: eventHosts.length,
         eventHosts,
-        filters: {
-          companyId: companyId || null,
-        },
       },
       'Event hosts retrieved successfully'
     );
   } catch (error) {
+    console.error('Error in /api/event-hosts:', error);
     return handleApiError(error);
   }
 }
