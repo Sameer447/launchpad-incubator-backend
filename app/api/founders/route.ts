@@ -41,61 +41,37 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Try to get the Founder label type ID
-    let founderTypeId: number | null = null;
-    
-    try {
-      const labelDefs = await client.crm.associations.v4.schema.definitionsApi.getAll(
-        'companies',
-        'contacts'
-      );
-      
-      console.log('Association labels:', labelDefs.results.map((l: any) => ({ 
-        label: l.label, 
-        typeId: l.typeId 
-      })));
-      
-      const founderLabel = labelDefs.results.find(
-        (label: any) => label.label && label.label.toLowerCase() === 'founder'
-      );
-      
-      if (founderLabel) {
-        founderTypeId = founderLabel.typeId;
-        console.log('Found Founder label with typeId:', founderTypeId);
-      }
-    } catch (err) {
-      console.error('Error fetching labels:', err);
-    }
-
     // Filter for Founder associations
-    let contactIds: string[];
-    
-    if (founderTypeId !== null) {
-      // Filter by the Founder association type
-      const founderAssociations = associationsResponse.results.filter((assoc: any) => {
-        // Check all associationType entries
-        return assoc.associationTypes?.some((at: any) => at.typeId === founderTypeId);
+    // IMPORTANT: Match by label name AND category to avoid conflicts with HubSpot-defined labels
+    const founderAssociations = associationsResponse.results.filter((assoc: any) => {
+      return assoc.associationTypes?.some((at: any) => {
+        // Match "Founder" label that is USER_DEFINED (not HUBSPOT_DEFINED)
+        return at.label && 
+               at.label.toLowerCase() === 'founder' && 
+               at.category === 'USER_DEFINED';
       });
-      
-      console.log(`Found ${founderAssociations.length} Founder associations`);
-      contactIds = founderAssociations.map((assoc: any) => assoc.toObjectId);
-    } else {
-      // No Founder label found - return all contacts
-      console.log('No Founder label found, returning all contacts');
-      contactIds = associationsResponse.results.map((assoc: any) => assoc.toObjectId);
-    }
+    });
 
-    if (contactIds.length === 0) {
+    console.log(`Found ${founderAssociations.length} contacts with USER_DEFINED Founder label`);
+
+    if (founderAssociations.length === 0) {
+      // Log what labels were found for debugging
+      const allLabels = associationsResponse.results.flatMap((assoc: any) => 
+        assoc.associationTypes?.map((at: any) => `${at.label} (${at.category})`) || []
+      );
+      console.log('Available association labels:', [...new Set(allLabels)].join(', '));
+      
       return successResponse(
         {
           total: 0,
           founders: [],
         },
-        'No contacts with "Founder" label found. Please associate contacts with the Founder label.'
+        'No contacts with "Founder" label found. Please associate contacts using the Founder label in HubSpot.'
       );
     }
 
-    console.log('Fetching details for contact IDs:', contactIds);
+    const contactIds = founderAssociations.map((assoc: any) => assoc.toObjectId);
+    console.log('Fetching details for Founder contact IDs:', contactIds);
 
     // Fetch contact details
     const contactPromises = contactIds.map(async (contactId) => {
@@ -115,7 +91,7 @@ export async function GET(request: NextRequest) {
     });
 
     const contacts = (await Promise.all(contactPromises)).filter(c => c !== null);
-    console.log(`Successfully fetched ${contacts.length} contacts`);
+    console.log(`Successfully fetched ${contacts.length} founder contacts`);
 
     // Transform to founder card data
     const founders = contacts.map(contact => transformToFounderCardData(contact));
@@ -167,7 +143,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const contactIds = associationsResponse.results.map((assoc: any) => assoc.toObjectId);
+    // Filter for Founder associations
+    const founderAssociations = associationsResponse.results.filter((assoc: any) => {
+      return assoc.associationTypes?.some((at: any) => {
+        return at.label && 
+               at.label.toLowerCase() === 'founder' && 
+               at.category === 'USER_DEFINED';
+      });
+    });
+
+    const contactIds = founderAssociations.map((assoc: any) => assoc.toObjectId);
 
     // Fetch contacts
     const contactPromises = contactIds.map(async (contactId) => {
