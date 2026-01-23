@@ -97,7 +97,7 @@ export async function GET(request: NextRequest) {
         email: properties.email || 'N/A',
         phone: properties.phone || 'N/A',
         sponsorshipLevel: properties.sponsorship_level || 'N/A',
-        contributionAmount: properties.contribution_amount || 'N/A',
+        contributionAmount: properties.contribution_amount || '0',
         sponsorshipStatus: properties.sponsorship_status || 'Active',
       };
     });

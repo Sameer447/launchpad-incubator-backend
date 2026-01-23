@@ -98,7 +98,7 @@ export async function GET(request: NextRequest) {
         phone: properties.phone || 'N/A',
         organizationType: properties.event_host_organization_type || 'N/A',
         eventsHosted: properties.events_hosted || '0',
-        nextEvent: properties.next_event || 'N/A',
+        nextEvent: properties.next_event || null,
       };
     });
 
