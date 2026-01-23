@@ -143,7 +143,7 @@ export async function createContactCompanyAssociation(
  */
 export async function getFounderAssociationLabelId(): Promise<number> {
   const envLabelId = process.env.ASSOCIATION_LABEL_FOUNDER;
-  
+  console.log('Founder association label ID from env:', envLabelId );
   if (envLabelId) {
     return parseInt(envLabelId, 10);
   }

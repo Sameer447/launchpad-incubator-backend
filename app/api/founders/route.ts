@@ -23,6 +23,8 @@ export async function GET(request: NextRequest) {
     if (companyId) {
       const client = getHubSpotClient();
       
+      console.log('Fetching associations for company:', companyId);
+      
       // Get all contacts associated with this company
       const associations = await client.crm.associations.batchApi.read(
         'companies',
@@ -31,22 +33,43 @@ export async function GET(request: NextRequest) {
           inputs: [{ id: companyId }],
         }
       );
-
+      
+      console.log('Raw associations response:', JSON.stringify(associations, null, 2));
+      
       const results = associations.results || [];
-      if (results.length > 0 && results[0].to) {
-        // Fetch each contact with founder properties
-        const contactPromises = results[0].to.map(async (assoc: any) => {
-          try {
-            const contactId = assoc.toObjectId || assoc.id;
-            return await getContactById(contactId, getFounderProperties());
-          } catch (error) {
-            console.error('Error fetching contact:', error);
-            return null;
-          }
-        });
+      console.log('Results array length:', results.length);
+      
+      if (results.length > 0) {
+        const firstResult = results[0];
+        console.log('First result structure:', Object.keys(firstResult));
+        console.log('First result.to:', firstResult.to);
+        console.log('First result:', JSON.stringify(firstResult, null, 2));
+        
+        const toArray = firstResult.to || [];
+        
+        if (toArray.length > 0) {
+          console.log(`Found ${toArray.length} associated contacts`);
+          
+          // Fetch each contact with founder properties
+          const contactPromises = toArray.map(async (assoc: any) => {
+            try {
+              const contactId = assoc.toObjectId || assoc.id;
+              console.log('Fetching contact ID:', contactId);
+              return await getContactById(String(contactId), getFounderProperties());
+            } catch (error) {
+              console.error('Error fetching contact:', error);
+              return null;
+            }
+          });
 
-        const contacts = await Promise.all(contactPromises);
-        contactResults = contacts.filter(c => c !== null);
+          const contacts = await Promise.all(contactPromises);
+          contactResults = contacts.filter(c => c !== null);
+          console.log(`Successfully fetched ${contactResults.length} contacts`);
+        } else {
+          console.log('No associated contacts found in to array');
+        }
+      } else {
+        console.log('No results in associations response');
       }
     } else {
       // Build search filters for non-company queries
@@ -76,7 +99,8 @@ export async function GET(request: NextRequest) {
         properties: getFounderProperties(),
         limit: 100,
       };
-
+      console.log('searchRequest ===> ', searchRequest);
+      
       // Search contacts
       const results = await searchContacts(searchRequest);
       contactResults = results.results;
