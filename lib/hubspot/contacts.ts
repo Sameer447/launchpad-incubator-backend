@@ -142,7 +142,8 @@ export function transformToFounderCardData(contact: HubSpotContact): FounderCard
     phone: properties.phone || 'N/A',
     applicationStatus: properties.application_status || 'N/A',
     depositStatus: properties.payment_status || 'N/A',
-    onboardingStage: properties.onboarding_status || 'Not Started',
+    onboardingStage: properties.onboarding_stage || 'Not Started',
+    // onboardingStatus: properties.onboarding_status || 'Not Started',
     currentCohort: properties?.current_cohort || properties?.cohort || 'N/A',
     nextSteps: properties.next_step || 'No action required',
   };

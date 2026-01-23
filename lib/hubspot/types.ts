@@ -11,6 +11,7 @@ export interface HubSpotContact {
     application_status?: 'Applied' | 'Accepted' | 'Rejected' | 'In Review';
     deposit_status?: 'Pending' | 'Paid' | 'Waived' | 'Refunded';
     onboarding_stage?: 'Not Started' | 'Profile Setup' | 'Agreement Signed' | 'Payment Complete' | 'Onboarded';
+    // onboardingStatus?: string;
     current_cohort?: string;
     next_steps?: string;
     [key: string]: any;
